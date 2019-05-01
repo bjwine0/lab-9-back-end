@@ -192,12 +192,12 @@ function getMovies(request, response) {
               const movieSummaries = movieResults.body.results.map( movie => {
                 
                 let summary = new Movie(movie);
-                console.log('line 195', 'summary=', summary, '***************************************************************************');
+                // console.log('line 195', 'summary=', summary, '***************************************************************************');
                 summary.id = query;
 
-                let newSql = `INSERT INTO movies (title, overview, average_votes, total_votes, image_url, popularity, released_on) VALUES($1, $2, $3, $4, $5, $6, $7);`;
+                let newSql = `INSERT INTO movies (title, overview, average_votes, total_votes, image_url, popularity, released_on, location_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8);`;
                 let newValues = Object.values(summary);
-                console.log('line 199', 'newValue=',newValues, '**************************************************************************');
+                // console.log('************************************line 199', 'newValue=',newValues, '**************************************************************************');
                 client.query(newSql, newValues);
                 return summary;
               });
