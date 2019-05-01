@@ -1,6 +1,6 @@
-# Lab 8 Back End
+# Lab 9 Back End
 
-**Author**: Brad Smialek
+**Author**: Brad Smialek Lee King 
 **Version**: 1.0.0 (increment the patch/fix version number if you make more commits past your first submission)
 
 ## Overview
@@ -21,91 +21,13 @@
 <!-- Give credit (and a link) to other people or resources that helped you build this application. -->
 -->
 
+#Feature 1
 
-#1. Database: As a user, I want the application to perform quickly so that I can search for locations frequently and reliably.
+Given that a user enters a valid location in the input
 
-Number and name of feature: _______Database_________________________
+When the user clicks the "Explore!" button
 
-Estimate of time needed to complete: _____
+Then the top twenty movies set in the area will be displayed in the browser
 
-Start time: _____
-
-Finish time: _____
-
-Actual time needed to complete: _____
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be loaded from a SQL database, if previously cached
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be requested from each individual API, if not previously cached
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be cached in a SQL database for future retrieval
-
-**Given** that a user does not enter a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the location information will not be displayed
-
-#2. Server: As a user, I want the application to perform quickly so that I can search for locations frequently and reliably.
-
-Number and name of feature: _______Database_________________________
-
-Estimate of time needed to complete: _____
-
-Start time: _____
-
-Finish time: _____
-
-Actual time needed to complete: _____
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be loaded from a SQL database, if previously cached
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be requested from each individual API, if not previously cached
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be cached in a SQL database for future retrieval
-
-**Given** that a user does not enter a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the location information will not be displayed
-
-
-
-#3. Deploy: As a user, I want the application to perform quickly so that I can search for locations frequently and reliably.
-
-Number and name of feature: _______Database_________________________
-
-Estimate of time needed to complete: _____
-
-Start time: _____
-
-Finish time: _____
-
-Actual time needed to complete: _____
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be loaded from a SQL database, if previously cached
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be requested from each individual API, if not previously cached
-
-**Given** that a user enters a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the results will be cached in a SQL database for future retrieval
-
-**Given** that a user does not enter a valid location in the input
-**When** the user clicks the "Explore!" button
-**Then** the location information will not be displayed
 
 
