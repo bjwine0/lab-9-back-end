@@ -23,32 +23,33 @@ app.get('/location', searchToLatLong)
 app.get('/weather', getWeather);
 app.get('/events', getEvent);
 app.get('/movies', getMovies);
+app.get('/yelp', getYelp);
 
 //server listening for requests
 app.listen(PORT, ()=> console.log(`city explorer back end Listening on PORT ${PORT}`));
 
 function searchToLatLong(request, response){
   let query = request.query.data;
-  // console.log('line31*******************','query=', query, 'request=', request, 'request.query.data=', request.query.data, '*************************'); //seattle
+  // console.log('line31','query=', query, 'request=', request, 'request.query.data=', request.query.data); //seattle
   // query is city --  request is a bunch of info
   // define the search
 
   let sql = `SELECT * FROM locations WHERE search_query=$1;`;
   let values = [query]; //always array
-  // console.log('line 37*******************', 'sql=',sql, 'values=',values, '**********************');
+  // console.log('line 37', 'sql=',sql, 'values=',values);
 
   //make the query fo the database
   client.query(sql, values)
     .then (result => {
       // did the db return any info?
-      // console.log('line 43********************','result from Database=', result.rowCount, '********************'); // =0 if empty
+      // console.log('line 43','result from Database=', result.rowCount); // =0 if empty
       if (result.rowCount > 0) {
         response.send(result.rows[0]);
       }else {
-        // console.log('line 47**********************','results=', result.rows, '**************************');
+        // console.log('line 47','results=', result.rows);
         //otherwise go get the data from the api
         const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
-        // console.log('************************line 50','url=', url);
+        // console.log('line 50','url=', url);
         superagent.get(url)
 
 
@@ -72,16 +73,6 @@ function searchToLatLong(request, response){
     })
 }
 
-
-// Constructor for location data
-function Location(query, location) {
-  this.search_query = query;
-  this.formatted_query = location.formatted_address;
-  this.latitude = location.geometry.location.lat;
-  this.longitude = location.geometry.location.lng;
-}
-
-
 function getWeather(request, response) {
   let query = request.query.data.id;
   let sql = `SELECT * FROM weathers WHERE location_id=$1;`;
@@ -90,7 +81,7 @@ function getWeather(request, response) {
   client.query(sql, values)
     .then (result => {
       if (result.rowCount > 0) {
-        // console.log('line 92**********','Weather from SQL', 'results.rows=', result.rows);
+        // console.log('line 92','Weather from SQL', 'results.rows=', result.rows);
         response.send(result.rows);
 
 
@@ -99,7 +90,7 @@ function getWeather(request, response) {
 
         return superagent.get(url)
           .then(weatherResults => {
-            // console.log('line 101 ****************','weather from API', '*********************');
+            // console.log('line 101','weather from API');
             if (!weatherResults.body.daily.data.length) { throw 'NO DATA'; }
             else {
               const weatherSummaries = weatherResults.body.daily.data.map( day => {
@@ -108,7 +99,7 @@ function getWeather(request, response) {
 
                 let newSql = `INSERT INTO weathers (forecast, time, location_id) VALUES($1, $2, $3);`;
                 let newValues = Object.values(summary);
-                // console.log('line 110 *****************', 'newValues=',newValues, '************************');
+                // console.log('line 110', 'newValues=',newValues);
                 client.query(newSql, newValues);
                 return summary;
               });
@@ -120,11 +111,6 @@ function getWeather(request, response) {
     });
 }
 
-function Weather(day) {
-  this.forecast = day.summary;
-  this.time = new Date(day.time * 1000).toString().slice(0, 15);
-}
-
 function getEvent(request, response) {
   let query = request.query.data.id;
   let sql = `SELECT * FROM events WHERE location_id=$1;`;
@@ -133,7 +119,7 @@ function getEvent(request, response) {
   client.query(sql, values)
     .then (result => {
       if (result.rowCount > 0) {
-        // console.log('line 135**********************','events from SQL', 'result.rows=', result.rows, '**********************');
+        // console.log('line 135','events from SQL', 'result.rows=', result.rows);
         response.send(result.rows);
 
 
@@ -165,39 +151,36 @@ function getEvent(request, response) {
 
 function getMovies(request, response) {
   let query = request.query.data.id; //1
-  console.log('line168***************************************', 'query=', query, '*************************************');
+  // console.log('line168', 'query=', query);
   let sql = `SELECT * FROM movies WHERE location_id=$1;`;
   let values = [query]; //always array  [1]
-  console.log('line170***************************************', 'values=', values, '****************************************');
+  // console.log('line170', 'values=', values);
 
   client.query(sql, values)
     .then (result => {
       if (result.rowCount > 0) {
-        console.log('line 174**********************','movies from SQL', 'result.rows=', result.rows, '**********************');
+        // console.log('line 174','movies from SQL', 'result.rows=', result.rows);
         response.send(result.rows);
 
-
       } else {
-        
         const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data}&page=1&include_adult=false`;
-        console.log('url', url, '*****************************************true*******************************************************');
-        console.log('line 181','***********************************','data', request, '************************************');
-        console.log('line 182**************************************', 'response=',response, '*****************************');
+        console.log('url', url, 'true');
+        // console.log('line 181','data', request);
+        // console.log('line 182', 'response=',response);
         return superagent.get(url)
           .then(movieResults => {
-            console.log('********************************movies from API******************************************', movieResults);
-            console.log('line 189', '*********************************', 'movieResults=', movieResults, '**********************************');
+            // console.log('movies from API', movieResults);
+            // console.log('line 189', 'movieResults=', movieResults);
             if (!movieResults.body.results.length) { throw 'NO DATA'; }
             else {
               const movieSummaries = movieResults.body.results.map( movie => {
-                
                 let summary = new Movie(movie);
-                // console.log('line 195', 'summary=', summary, '***************************************************************************');
+                // console.log('line 195', 'summary=', summary);
                 summary.id = query;
 
                 let newSql = `INSERT INTO movies (title, overview, average_votes, total_votes, image_url, popularity, released_on, location_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8);`;
                 let newValues = Object.values(summary);
-                // console.log('************************************line 199', 'newValue=',newValues, '**************************************************************************');
+                // console.log('line 199', 'newValue=',newValues);
                 client.query(newSql, newValues);
                 return summary;
               });
@@ -209,16 +192,60 @@ function getMovies(request, response) {
     });
 }
 
-function Movie (movie) {
-  // console.log(movie);
-  this.title = movie.original_title;
-  this.overview = movie.overview;
-  this.average_votes = movie.vote_average;
-  this.total_votes = movie.vote_count;
-  this.image_url = `https://image.tmdb.org/t/p/original${movie.poster_path}` ;
-  this.popularity = movie.popularity;
-  this.released_on = movie.release_date;
+function getYelp (request, response) {
+  let query = request.query.data.id; //1
+  console.log('line197***************************************', 'query=', request.query.data, '*************************************');
+  let sql = `SELECT * FROM yelp WHERE location_id=$1;`;
+  let values = [query]; //always array  [1]
+  console.log('line200***************************************', 'values=', values, '****************************************');
 
+  client.query(sql, values)
+    .then (result => {
+      if (result.rowCount > 0) {
+        console.log('line 205**********************','movies from SQL', 'result.rows=', result.rows, '**********************');
+        response.send(result.rows);
+
+      } else {
+        const url = `https://api.yelp.com/v3/businesses/search?term=${request.query.data.search_query}&Authorization:Bearer${process.env.YELP_API_KEY}`;
+        console.log('line 210','url', url, '*****************************************true*******************************************************');
+        console.log('line 211','***********************************','data', request, '************************************');
+        console.log('line 212**************************************', 'response=',response, '*****************************');
+        return superagent.get(url)
+          .then(yelpResults => {
+            console.log('********************************yelp from API******************************************', yelpResults);
+            console.log('line 189', '*********************************', 'movieResults=', yelpResults, '**********************************');
+            if (!yelpResults.body.results.length) { throw 'NO DATA'; }
+            else {
+              const yelpSummaries = yelpResults.body.results.map( biz => {
+                let summary = new Yelp(biz);
+                // console.log('line 195', 'summary=', summary, '***************************************************************************');
+                summary.id = query;
+
+                let newSql = `INSERT INTO yelp (name, image_url, price, rating, url, location_id) VALUES($1, $2, $3, $4, $5, $6);`;
+                let newValues = Object.values(summary);
+                // console.log('************************************line 199', 'newValue=',newValues, '**************************************************************************');
+                client.query(newSql, newValues);
+                return summary;
+              });
+              response.send(yelpSummaries);
+            }
+          })
+          .catch(err => handleError(err, response));
+      }
+    });
+}
+
+// Constructors 
+function Location(query, location) {
+  this.search_query = query;
+  this.formatted_query = location.formatted_address;
+  this.latitude = location.geometry.location.lat;
+  this.longitude = location.geometry.location.lng;
+}
+
+function Weather(day) {
+  this.forecast = day.summary;
+  this.time = new Date(day.time * 1000).toString().slice(0, 15);
 }
 
 function Event(event) {
@@ -228,7 +255,23 @@ function Event(event) {
   this.event_date = new Date(event.start.local).toString().slice(0, 15);
 }
 
+function Movie (movie) {
+  this.title = movie.original_title;
+  this.overview = movie.overview;
+  this.average_votes = movie.vote_average;
+  this.total_votes = movie.vote_count;
+  this.image_url = `https://image.tmdb.org/t/p/original${movie.poster_path}` ;
+  this.popularity = movie.popularity;
+  this.released_on = movie.release_date;
+}
 
+function Yelp (yelp) {
+  this.name = yelp.name;
+  // this.image_url = `https://image.tmdb.org/t/p/original${movie.poster_path}` ;
+  this.price = yelp.price;
+  this.rating = yelp.rating;
+  this.url = yelp.url;
+}
 
 //error handler
 function handleError(err, response) {
