@@ -1,0 +1,28 @@
+{
+  "name": "lab-8",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bjwine0/lab-8.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bjwine0/lab-8/issues"
+  },
+  "homepage": "https://github.com/bjwine0/lab-8#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^7.0.0",
+    "express": "^4.16.4",
+    "pg": "^7.10.0",
+    "postgresql": "0.0.1",
+    "superagent": "^5.0.3"
+  }
+}
