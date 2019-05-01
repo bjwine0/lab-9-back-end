@@ -164,38 +164,40 @@ function getEvent(request, response) {
 }
 
 function getMovies(request, response) {
-  let query = request.query.data.id;
+  let query = request.query.data.id; //1
+  console.log('line168***************************************', 'query=', query, '*************************************');
   let sql = `SELECT * FROM movies WHERE location_id=$1;`;
-  let values = [query]; //always array
-  // console.log(query);
+  let values = [query]; //always array  [1]
+  console.log('line170***************************************', 'values=', values, '****************************************');
 
   client.query(sql, values)
     .then (result => {
       if (result.rowCount > 0) {
-        // console.log('line 174**********************','movies from SQL', 'result.rows=', result.rows, '**********************');
+        console.log('line 174**********************','movies from SQL', 'result.rows=', result.rows, '**********************');
         response.send(result.rows);
 
 
       } else {
-        // console.log('data', request.query.data);
-        console.log(request.query.data.search_query);
-        const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data.formatted_query}&page=1&include_adult=false`;
-        // console.log(url);
-
+        
+        const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data}&page=1&include_adult=false`;
+        console.log('url', url, '*****************************************true*******************************************************');
+        console.log('line 181','***********************************','data', request, '************************************');
+        console.log('line 182**************************************', 'response=',response, '*****************************');
         return superagent.get(url)
           .then(movieResults => {
-            // console.log('movies from API');
-            console.log(movieResults);
+            console.log('********************************movies from API******************************************', movieResults);
+            console.log('line 189', '*********************************', 'movieResults=', movieResults, '**********************************');
             if (!movieResults.body.results.length) { throw 'NO DATA'; }
             else {
               const movieSummaries = movieResults.body.results.map( movie => {
-                // console.log(movieSummaries);
+                
                 let summary = new Movie(movie);
+                console.log('line 195', 'summary=', summary, '***************************************************************************');
                 summary.id = query;
 
-                let newSql = `INSERT INTO movies (title, overview, average_votes, total_votes, image_url, popularity, released_on, popularity, released_on) VALUES($1, $2, $3, $4, $5);`;
+                let newSql = `INSERT INTO movies (title, overview, average_votes, total_votes, image_url, popularity, released_on) VALUES($1, $2, $3, $4, $5, $6, $7);`;
                 let newValues = Object.values(summary);
-                // console.log(newValues);
+                console.log('line 199', 'newValue=',newValues, '**************************************************************************');
                 client.query(newSql, newValues);
                 return summary;
               });
