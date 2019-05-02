@@ -223,7 +223,7 @@ function getMovies(request, response) {
     if (result) {response.send(result.rows);}
     else {
         const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data.formatted_address.split(',')[0]}&page=1&include_adult=false`;
-        console.log(request.query.data.formatted_address.split(',')[0]);
+        console.log(request.query.data.formatted_address);
         // console.log('line 181','data', request);
         // console.log('line 182', 'response=',response);
         return superagent.get(url)
@@ -314,7 +314,7 @@ function Event(event) {
 
 function Movie (movie) {
   this.title = movie.original_title;
-  this.overview = movie.overview;
+  this.overview = movie.overview.slice(0,750);
   this.average_votes = movie.vote_average;
   this.total_votes = movie.vote_count;
   this.image_url = `https://image.tmdb.org/t/p/original${movie.poster_path}` ;
