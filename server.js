@@ -28,6 +28,81 @@ app.get('/yelp', getYelp);
 //server listening for requests
 app.listen(PORT, ()=> console.log(`city explorer back end Listening on PORT ${PORT}`));
 
+function getDataFromDB(sqlInfo){
+  // create sql statement
+  let condition = '';
+  let values = [];
+
+  if (sqlInfo.searchQuery){
+    condition = 'search_query';
+    values = [sqlInfo.searchQuery];
+  } else {
+    condition = 'location_id';
+    values = [sqlInfo.id];
+  }
+
+  let sql = `SELECT * FROM ${sqlInfo.endpoint}s WHERE ${condition}=$1`;
+
+  // Get the data and return it
+  try {return client.query(sql, values);}
+  catch(error){ handleError(error);}
+}
+
+function saveDataToDB(sqlInfo){
+  // param placeholder
+  let params = [];
+
+  for (let i=1; i<= sqlInfo.values.length;i++){
+    params.push(`$${i}`)
+  }
+
+  let sqlParams = params.join();
+
+  let sql = '';
+  if (sqlInfo.searchQuery){
+    // loc
+    sql = `INSERT INTO ${sqlInfo.endpoint}s (${sqlInfo.columns}) VALUES (${sqlParams}) RETURNING ID;`
+  } else {
+    // all other endpoints since loc is a little special
+    sql = `INSERT INTO ${sqlInfo.endpoint}s (${sqlInfo.columns}) VALUES (${sqlParams});`
+  }
+
+  // save all this hardly won data nom nom nom
+
+  try {return client.query(sql, sqlInfo.values);}
+  catch(err){handleError(err);}
+}
+
+function checkTimeouts(sqlInfo, sqlData) {
+
+  const timeouts = {
+    weather: 15 * 1000, // 15-seconds
+    yelp: 24 * 1000 * 60 * 60, // 24-Hours
+    movie: 30 * 1000 * 60 * 60 * 24, // 30-Days
+    event: 6 * 1000 * 60 * 60, // 6-Hours
+    trail: 7 * 1000 * 60 * 60 * 24 // 7-Days
+  };
+
+  // if there is data, find out how old it is.
+  if (sqlData.rowCount > 0) {
+    let ageOfResults = (Date.now() - sqlData.rows[0].created_at);
+
+    // For debugging only
+    console.log(sqlInfo.endpoint, ' AGE:', ageOfResults);
+    console.log(sqlInfo.endpoint, ' Timeout:', timeouts[sqlInfo.endpoint]);
+
+    // Compare the age of the results with the timeout value
+    // Delete the data if it is old
+    if (ageOfResults > timeouts[sqlInfo.endpoint]) {
+      let sql = `DELETE FROM ${sqlInfo.endpoint}s WHERE location_id=$1;`;
+      let values = [sqlInfo.id];
+      client.query(sql, values)
+        .then(() => { return null; })
+        .catch(error => handleError(error));
+    } else { return sqlData; }
+  }
+}
+
 function searchToLatLong(request, response){
   let query = request.query.data;
   // console.log('line31','query=', query, 'request=', request, 'request.query.data=', request.query.data); //seattle
