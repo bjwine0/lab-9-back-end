@@ -104,40 +104,31 @@ function checkTimeouts(sqlInfo, sqlData) {
 }
 
 function searchToLatLong(request, response){
-  let query = request.query.data;
-  // console.log('line31','query=', query, 'request=', request, 'request.query.data=', request.query.data); //seattle
-  // query is city --  request is a bunch of info
-  // define the search
+  let sqlInfo = {
+    searchQuery: request.query.data,
+    endpoint: 'location'
+  };
 
-  let sql = `SELECT * FROM locations WHERE search_query=$1;`;
-  let values = [query]; //always array
-  // console.log('line 37', 'sql=',sql, 'values=',values);
-
-  //make the query fo the database
-  client.query(sql, values)
-    .then (result => {
-      // did the db return any info?
-      // console.log('line 43','result from Database=', result.rowCount); // =0 if empty
-      if (result.rowCount > 0) {
+  getDataFromDB(sqlInfo)
+    .then(result => {
+      if (result.rowCount >0){
         response.send(result.rows[0]);
-      }else {
+    } else {
         // console.log('line 47','results=', result.rows);
         //otherwise go get the data from the api
         const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
         // console.log('line 50','url=', url);
         superagent.get(url)
-
-
           .then(result => {
             if (!result.body.results.length) {throw 'NO DATA';}
             else {
-              let location = new Location(query, result.body.results[0]);
-              let newSQL = `INSERT INTO locations (search_query, formatted_address, latitude, longitude) VALUES ($1, $2, $3, $4) RETURNING ID;`;
-              let newValues = Object.values(location);
+              let location = new Location(sqlInfo.searchQuery, result.body.results[0]);
 
-              client.query(newSQL, newValues)
-                .then( data => {
-                  //attach returnilng id to the location object
+              sqlInfo.columns = Object.keys(location).join();
+              sqlInfo.values = Object.values(location);
+              
+              saveDataToDB(sqlInfo)
+                .then(data => {
                   location.id = data.rows[0].id;
                   response.send(location);
                 });
@@ -149,18 +140,16 @@ function searchToLatLong(request, response){
 }
 
 function getWeather(request, response) {
-  let query = request.query.data.id;
-  let sql = `SELECT * FROM weathers WHERE location_id=$1;`;
-  let values = [query]; //always array
+  let sqlInfo = {
+    id: request.query.data.id,
+    endpoint: 'weather'
+  };
 
-  client.query(sql, values)
-    .then (result => {
-      if (result.rowCount > 0) {
-        // console.log('line 92','Weather from SQL', 'results.rows=', result.rows);
-        response.send(result.rows);
-
-
-      } else {
+  getDataFromDB(sqlInfo)
+    .then(data => checkTimeouts(sqlInfo,data))
+    .then(result => {
+      if (result) {response.send(result.rows);}
+      else {
         const url = `https://api.darksky.net/forecast/${process.env.WEATHER_API_KEY}/${request.query.data.latitude},${request.query.data.longitude}`;
 
         return superagent.get(url)
@@ -170,12 +159,12 @@ function getWeather(request, response) {
             else {
               const weatherSummaries = weatherResults.body.daily.data.map( day => {
                 let summary = new Weather(day);
-                summary.id = query;
+                summary.location_id = sqlInfo.id;
 
-                let newSql = `INSERT INTO weathers (forecast, time, location_id) VALUES($1, $2, $3);`;
-                let newValues = Object.values(summary);
-                // console.log('line 110', 'newValues=',newValues);
-                client.query(newSql, newValues);
+                sqlInfo.columns = Object.keys(summary).join();
+                sqlInfo.values = Object.values(summary);
+
+                saveDataToDB(sqlInfo)
                 return summary;
               });
               response.send(weatherSummaries);
@@ -314,7 +303,7 @@ function getYelp (request, response) {
 // Constructors 
 function Location(query, location) {
   this.search_query = query;
-  this.formatted_query = location.formatted_address;
+  this.formatted_address = location.formatted_address;
   this.latitude = location.geometry.location.lat;
   this.longitude = location.geometry.location.lng;
 }
