@@ -195,7 +195,7 @@ function getMovies(request, response) {
 function getYelp (request, response) {
   let query = request.query.data.id; //1
   console.log('line197***************************************', 'query=', request.query.data, '*************************************');
-  let sql = `SELECT * FROM yelp WHERE location_id=$1;`;
+  let sql = `SELECT * FROM yelps WHERE location_id=$1;`;
   let values = [query]; //always array  [1]
   console.log('line200***************************************', 'values=', values, '****************************************');
 
@@ -206,22 +206,23 @@ function getYelp (request, response) {
         response.send(result.rows);
 
       } else {
-        const url = `https://api.yelp.com/v3/businesses/search?term=${request.query.data.search_query}&Authorization:Bearer${process.env.YELP_API_KEY}`;
+        const url = `https://api.yelp.com/v3/businesses/search?latitude=${request.query.data.latitude}&longitude=${request.query.data.longitude}`;
         console.log('line 210','url', url, '*****************************************true*******************************************************');
         console.log('line 211','***********************************','data', request, '************************************');
         console.log('line 212**************************************', 'response=',response, '*****************************');
         return superagent.get(url)
+          .set({'Authorization': 'Bearer '+ process.env.YELP_API_KEY})
           .then(yelpResults => {
             console.log('********************************yelp from API******************************************', yelpResults);
             console.log('line 189', '*********************************', 'movieResults=', yelpResults, '**********************************');
-            if (!yelpResults.body.results.length) { throw 'NO DATA'; }
+            if (!yelpResults.body.businesses.length) { throw 'NO DATA'; }
             else {
-              const yelpSummaries = yelpResults.body.results.map( biz => {
+              const yelpSummaries = yelpResults.body.businesses.map( biz => {
                 let summary = new Yelp(biz);
                 // console.log('line 195', 'summary=', summary, '***************************************************************************');
                 summary.id = query;
 
-                let newSql = `INSERT INTO yelp (name, image_url, price, rating, url, location_id) VALUES($1, $2, $3, $4, $5, $6);`;
+                let newSql = `INSERT INTO yelps (name, image_url, price, rating, url, location_id) VALUES($1, $2, $3, $4, $5, $6);`;
                 let newValues = Object.values(summary);
                 // console.log('************************************line 199', 'newValue=',newValues, '**************************************************************************');
                 client.query(newSql, newValues);
@@ -267,7 +268,7 @@ function Movie (movie) {
 
 function Yelp (yelp) {
   this.name = yelp.name;
-  // this.image_url = `https://image.tmdb.org/t/p/original${movie.poster_path}` ;
+  this.image_url = yelp.image_url;
   this.price = yelp.price;
   this.rating = yelp.rating;
   this.url = yelp.url;
