@@ -176,18 +176,16 @@ function getWeather(request, response) {
 }
 
 function getEvent(request, response) {
-  let query = request.query.data.id;
-  let sql = `SELECT * FROM events WHERE location_id=$1;`;
-  let values = [query]; //always array
+  let sqlInfo = {
+    id: request.query.data.id,
+    endpoint: 'event'
+  };
 
-  client.query(sql, values)
-    .then (result => {
-      if (result.rowCount > 0) {
-        // console.log('line 135','events from SQL', 'result.rows=', result.rows);
-        response.send(result.rows);
-
-
-      } else {
+  getDataFromDB(sqlInfo)
+    .then(data => checkTimeouts(sqlInfo, data))
+    .then(result => {
+      if(result){response.send(result.rows);}
+      else {
         const url = `https://www.eventbriteapi.com/v3/events/search/?token=${process.env.EVENTBRITE_API_KEY}&location.latitude=${request.query.data.latitude}&location.longitude=${request.query.data.longitude}`;
 
         return superagent.get(url)
@@ -197,12 +195,12 @@ function getEvent(request, response) {
             else {
               const eventSummaries = eventResults.body.events.map( events => {
                 let summary = new Event(events);
-                summary.id = query;
+                summary.location_id = sqlInfo.id;
 
-                let newSql = `INSERT INTO events (link, name, summary, event_date, location_id) VALUES($1, $2, $3, $4, $5);`;
-                let newValues = Object.values(summary);
-                // console.log(newValues);
-                client.query(newSql, newValues);
+                sqlInfo.columns = Object.keys(summary).join();
+                sqlInfo.values = Object.values(summary);
+
+                saveDataToDB(sqlInfo);
                 return summary;
               });
               response.send(eventSummaries);
@@ -214,21 +212,18 @@ function getEvent(request, response) {
 }
 
 function getMovies(request, response) {
-  let query = request.query.data.id; //1
-  // console.log('line168', 'query=', query);
-  let sql = `SELECT * FROM movies WHERE location_id=$1;`;
-  let values = [query]; //always array  [1]
-  // console.log('line170', 'values=', values);
+  let sqlInfo = {
+    id: request.query.data.id,
+    endpoint: 'movie'
+  };
 
-  client.query(sql, values)
-    .then (result => {
-      if (result.rowCount > 0) {
-        // console.log('line 174','movies from SQL', 'result.rows=', result.rows);
-        response.send(result.rows);
-
-      } else {
-        const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data}&page=1&include_adult=false`;
-        console.log('url', url, 'true');
+  getDataFromDB(sqlInfo)
+  .then(data => checkTimeouts(sqlInfo,data))
+  .then(result => {
+    if (result) {response.send(result.rows);}
+    else {
+        const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data.formatted_address.split(',')[0]}&page=1&include_adult=false`;
+        console.log(request.query.data.formatted_address.split(',')[0]);
         // console.log('line 181','data', request);
         // console.log('line 182', 'response=',response);
         return superagent.get(url)
@@ -240,12 +235,11 @@ function getMovies(request, response) {
               const movieSummaries = movieResults.body.results.map( movie => {
                 let summary = new Movie(movie);
                 // console.log('line 195', 'summary=', summary);
-                summary.id = query;
+                summary.location_id = sqlInfo.id;
+                sqlInfo.columns = Object.keys(summary).join();
+                sqlInfo.values = Object.values(summary);
 
-                let newSql = `INSERT INTO movies (title, overview, average_votes, total_votes, image_url, popularity, released_on, location_id) VALUES($1, $2, $3, $4, $5, $6, $7, $8);`;
-                let newValues = Object.values(summary);
-                // console.log('line 199', 'newValue=',newValues);
-                client.query(newSql, newValues);
+                saveDataToDB(sqlInfo);
                 return summary;
               });
               response.send(movieSummaries);
@@ -257,39 +251,35 @@ function getMovies(request, response) {
 }
 
 function getYelp (request, response) {
-  let query = request.query.data.id; //1
-  console.log('line197***************************************', 'query=', request.query.data, '*************************************');
-  let sql = `SELECT * FROM yelps WHERE location_id=$1;`;
-  let values = [query]; //always array  [1]
-  console.log('line200***************************************', 'values=', values, '****************************************');
-
-  client.query(sql, values)
-    .then (result => {
-      if (result.rowCount > 0) {
-        console.log('line 205**********************','movies from SQL', 'result.rows=', result.rows, '**********************');
-        response.send(result.rows);
-
-      } else {
+  let sqlInfo = {
+    id: request.query.data.id,
+    endpoint: 'yelp'
+  };
+  getDataFromDB(sqlInfo)
+    .then(data => checkTimeouts(sqlInfo,data))
+    .then(result => {
+      if (result) {response.send(result.rows);}
+      else {
         const url = `https://api.yelp.com/v3/businesses/search?latitude=${request.query.data.latitude}&longitude=${request.query.data.longitude}`;
-        console.log('line 210','url', url, '*****************************************true*******************************************************');
-        console.log('line 211','***********************************','data', request, '************************************');
-        console.log('line 212**************************************', 'response=',response, '*****************************');
+        // console.log('line 210','url', url, '*****************************************true*******************************************************');
+        // console.log('line 211','***********************************','data', request, '************************************');
+        // console.log('line 212**************************************', 'response=',response, '*****************************');
         return superagent.get(url)
           .set({'Authorization': 'Bearer '+ process.env.YELP_API_KEY})
           .then(yelpResults => {
-            console.log('********************************yelp from API******************************************', yelpResults);
-            console.log('line 189', '*********************************', 'movieResults=', yelpResults, '**********************************');
+            // console.log('********************************yelp from API******************************************', yelpResults);
+            // console.log('line 189', '*********************************', 'movieResults=', yelpResults, '**********************************');
             if (!yelpResults.body.businesses.length) { throw 'NO DATA'; }
             else {
               const yelpSummaries = yelpResults.body.businesses.map( biz => {
                 let summary = new Yelp(biz);
                 // console.log('line 195', 'summary=', summary, '***************************************************************************');
-                summary.id = query;
+                summary.location_id = sqlInfo.id;
 
-                let newSql = `INSERT INTO yelps (name, image_url, price, rating, url, location_id) VALUES($1, $2, $3, $4, $5, $6);`;
-                let newValues = Object.values(summary);
-                // console.log('************************************line 199', 'newValue=',newValues, '**************************************************************************');
-                client.query(newSql, newValues);
+                sqlInfo.columns = Object.keys(summary).join();
+                sqlInfo.values = Object.values(summary);
+
+                saveDataToDB(sqlInfo);
                 return summary;
               });
               response.send(yelpSummaries);
@@ -311,6 +301,7 @@ function Location(query, location) {
 function Weather(day) {
   this.forecast = day.summary;
   this.time = new Date(day.time * 1000).toString().slice(0, 15);
+  this.created_at = Date.now();
 }
 
 function Event(event) {
@@ -318,6 +309,7 @@ function Event(event) {
   this.name = event.name.text;
   this.summary = event.summary;
   this.event_date = new Date(event.start.local).toString().slice(0, 15);
+  this.created_at = Date.now();
 }
 
 function Movie (movie) {
@@ -328,6 +320,7 @@ function Movie (movie) {
   this.image_url = `https://image.tmdb.org/t/p/original${movie.poster_path}` ;
   this.popularity = movie.popularity;
   this.released_on = movie.release_date;
+  this.created_at = Date.now();
 }
 
 function Yelp (yelp) {
@@ -336,6 +329,7 @@ function Yelp (yelp) {
   this.price = yelp.price;
   this.rating = yelp.rating;
   this.url = yelp.url;
+  this.created_at = Date.now();
 }
 
 //error handler
