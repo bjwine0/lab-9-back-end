@@ -24,6 +24,7 @@ app.get('/weather', getWeather);
 app.get('/events', getEvent);
 app.get('/movies', getMovies);
 app.get('/yelp', getYelp);
+app.get('/trails' , getTrails);
 
 //server listening for requests
 app.listen(PORT, ()=> console.log(`city explorer back end Listening on PORT ${PORT}`));
@@ -290,6 +291,39 @@ function getYelp (request, response) {
     });
 }
 
+function getTrails (request, response){
+  let sqlInfo = {
+    id: request.query.data.id,
+    endpoint: 'trail'
+  };
+  getDataFromDB(sqlInfo)
+  .then(data => checkTimeouts(sqlInfo,data))
+  .then(result => {
+    if(result){response.send(result.rows);}
+    else {
+      const url = `https://www.hikingproject.com/data/get-trails?lat=${request.query.data.latitude}&lon=${request.query.data.longitude}&key=${process.env.TRAIL_API_KEY}`;
+
+      return superagent.get(url)
+      .then(trailResults => {
+        if(!trailResults.body.trails.length){throw 'NO DATA';}
+        else {
+          const trailSummaries = trailResults.body.trails.map(trail => {
+            let summary = new Trail(trail);
+            summary.location_id = sqlInfo.id;
+            sqlInfo.columns = Object.keys(summary).join();
+            sqlInfo.values = Object.values(summary);
+
+            saveDataToDB(sqlInfo);
+            return summary;
+          });
+          response.send(trailSummaries);
+        }
+      })
+      .catch(err => handleError(err, response));
+    }
+  });
+}
+
 // Constructors 
 function Location(query, location) {
   this.search_query = query;
@@ -329,6 +363,20 @@ function Yelp (yelp) {
   this.price = yelp.price;
   this.rating = yelp.rating;
   this.url = yelp.url;
+  this.created_at = Date.now();
+}
+
+function Trail (trail){
+  this.name = trail.name;
+  this.location = trail.location;
+  this.length = trail.length;
+  this.stars = trail.stars;
+  this.star_votes = trail.starVotes;
+  this.summary = trail.summary;
+  this.trail_url = trail.url;
+  this.conditions = trail.conditionDetails;
+  this.condition_date = trail.conditionDate.split(' ')[0];
+  this.condition_time = trail.conditionDate.split(' ')[1];
   this.created_at = Date.now();
 }
 
