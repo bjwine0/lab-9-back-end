@@ -6,6 +6,8 @@
 ## Overview
 Movies: As a user, I want to request information about movies that are connected to the area, so that users can learn more about the location.
 Yelp: As a user, I want to request information about restaurants in the area so that users can view recommendations based on the search query.
+Cache invalidation: As a user, I want to view up-to-date information so that I receive accurate details.
+STRETCH GOAL: Trails: As a user, I want to request information about trails and campgrounds in the area so that users can explore the location.
 
 ## Getting Started
 <!-- What are the steps that a user must take in order to build this app on their own machine and get it running? -->
@@ -56,10 +58,45 @@ Estimate of time needed to complete: __5hrs___
 
 Start time: ___0300__
 
-Finish time: _____
+Finish time: ___1745__
 
-Actual time needed to complete: _____
-
-
+Actual time needed to complete: ___3 hrs__
 
 
+#Feature 3. 
+
+Given that a user enters a valid location in the input
+
+When the user clicks the "Explore!" button
+
+Then the most recent data will be displayed in the browser
+
+
+Number and name of feature: ____Cache Invalidation_________________
+
+Estimate of time needed to complete: __5hrs___
+
+Start time: ___0300__
+
+Finish time: ___1745__
+
+Actual time needed to complete: ___3 hrs__
+
+
+#Stretch Goal - Trails
+
+Given that a user enters a valid location in the input
+
+When the user clicks the "Explore!" button
+
+Then the first ten hikes and campgrounds in the area will be displayed in the browser
+
+Number and name of feature: ____Trails_________________
+
+Estimate of time needed to complete: __3hrs___
+
+Start time: ___1800__
+
+Finish time: ___2145__
+
+Actual time needed to complete: ___3 45 hrs__

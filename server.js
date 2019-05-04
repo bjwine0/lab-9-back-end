@@ -24,7 +24,7 @@ app.get('/weather', getWeather);
 app.get('/events', getEvent);
 app.get('/movies', getMovies);
 app.get('/yelp', getYelp);
-app.get('/trails' , getTrails);
+app.get('/trails', getTrails);
 
 //server listening for requests
 app.listen(PORT, ()=> console.log(`city explorer back end Listening on PORT ${PORT}`));
@@ -109,25 +109,19 @@ function searchToLatLong(request, response){
     searchQuery: request.query.data,
     endpoint: 'location'
   };
-
   getDataFromDB(sqlInfo)
     .then(result => {
       if (result.rowCount >0){
         response.send(result.rows[0]);
-    } else {
-        // console.log('line 47','results=', result.rows);
-        //otherwise go get the data from the api
+      } else {
         const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
-        // console.log('line 50','url=', url);
         superagent.get(url)
           .then(result => {
             if (!result.body.results.length) {throw 'NO DATA';}
             else {
               let location = new Location(sqlInfo.searchQuery, result.body.results[0]);
-
               sqlInfo.columns = Object.keys(location).join();
               sqlInfo.values = Object.values(location);
-              
               saveDataToDB(sqlInfo)
                 .then(data => {
                   location.id = data.rows[0].id;
@@ -191,7 +185,6 @@ function getEvent(request, response) {
 
         return superagent.get(url)
           .then(eventResults => {
-            // console.log('events from API');
             if (!eventResults.body.events.length) { throw 'NO DATA'; }
             else {
               const eventSummaries = eventResults.body.events.map( events => {
@@ -219,23 +212,20 @@ function getMovies(request, response) {
   };
 
   getDataFromDB(sqlInfo)
-  .then(data => checkTimeouts(sqlInfo,data))
-  .then(result => {
-    if (result) {response.send(result.rows);}
-    else {
+    .then(data => checkTimeouts(sqlInfo,data))
+    .then(result => {
+      if (result) {response.send(result.rows);}
+      else {
         const url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.MOVIE_API_KEY}&language=en-US&query=${request.query.data.formatted_address.split(',')[0]}&page=1&include_adult=false`;
         console.log(request.query.data.formatted_address);
-        // console.log('line 181','data', request);
-        // console.log('line 182', 'response=',response);
+
         return superagent.get(url)
           .then(movieResults => {
-            // console.log('movies from API', movieResults);
-            // console.log('line 189', 'movieResults=', movieResults);
+
             if (!movieResults.body.results.length) { throw 'NO DATA'; }
             else {
               const movieSummaries = movieResults.body.results.map( movie => {
                 let summary = new Movie(movie);
-                // console.log('line 195', 'summary=', summary);
                 summary.location_id = sqlInfo.id;
                 sqlInfo.columns = Object.keys(summary).join();
                 sqlInfo.values = Object.values(summary);
@@ -262,19 +252,16 @@ function getYelp (request, response) {
       if (result) {response.send(result.rows);}
       else {
         const url = `https://api.yelp.com/v3/businesses/search?latitude=${request.query.data.latitude}&longitude=${request.query.data.longitude}`;
-        // console.log('line 210','url', url, '*****************************************true*******************************************************');
-        // console.log('line 211','***********************************','data', request, '************************************');
-        // console.log('line 212**************************************', 'response=',response, '*****************************');
+
         return superagent.get(url)
           .set({'Authorization': 'Bearer '+ process.env.YELP_API_KEY})
           .then(yelpResults => {
-            // console.log('********************************yelp from API******************************************', yelpResults);
-            // console.log('line 189', '*********************************', 'movieResults=', yelpResults, '**********************************');
+
             if (!yelpResults.body.businesses.length) { throw 'NO DATA'; }
             else {
               const yelpSummaries = yelpResults.body.businesses.map( biz => {
                 let summary = new Yelp(biz);
-                // console.log('line 195', 'summary=', summary, '***************************************************************************');
+
                 summary.location_id = sqlInfo.id;
 
                 sqlInfo.columns = Object.keys(summary).join();
@@ -297,34 +284,34 @@ function getTrails (request, response){
     endpoint: 'trail'
   };
   getDataFromDB(sqlInfo)
-  .then(data => checkTimeouts(sqlInfo,data))
-  .then(result => {
-    if(result){response.send(result.rows);}
-    else {
-      const url = `https://www.hikingproject.com/data/get-trails?lat=${request.query.data.latitude}&lon=${request.query.data.longitude}&key=${process.env.TRAIL_API_KEY}`;
+    .then(data => checkTimeouts(sqlInfo,data))
+    .then(result => {
+      if(result){response.send(result.rows);}
+      else {
+        const url = `https://www.hikingproject.com/data/get-trails?lat=${request.query.data.latitude}&lon=${request.query.data.longitude}&key=${process.env.TRAIL_API_KEY}`;
 
-      return superagent.get(url)
-      .then(trailResults => {
-        if(!trailResults.body.trails.length){throw 'NO DATA';}
-        else {
-          const trailSummaries = trailResults.body.trails.map(trail => {
-            let summary = new Trail(trail);
-            summary.location_id = sqlInfo.id;
-            sqlInfo.columns = Object.keys(summary).join();
-            sqlInfo.values = Object.values(summary);
+        return superagent.get(url)
+          .then(trailResults => {
+            if(!trailResults.body.trails.length){throw 'NO DATA';}
+            else {
+              const trailSummaries = trailResults.body.trails.map(trail => {
+                let summary = new Trail(trail);
+                summary.location_id = sqlInfo.id;
+                sqlInfo.columns = Object.keys(summary).join();
+                sqlInfo.values = Object.values(summary);
 
-            saveDataToDB(sqlInfo);
-            return summary;
-          });
-          response.send(trailSummaries);
-        }
-      })
-      .catch(err => handleError(err, response));
-    }
-  });
+                saveDataToDB(sqlInfo);
+                return summary;
+              });
+              response.send(trailSummaries);
+            }
+          })
+          .catch(err => handleError(err, response));
+      }
+    });
 }
 
-// Constructors 
+// Constructors
 function Location(query, location) {
   this.search_query = query;
   this.formatted_address = location.formatted_address;
